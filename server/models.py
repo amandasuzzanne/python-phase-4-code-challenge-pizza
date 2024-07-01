@@ -12,7 +12,6 @@ metadata = MetaData(
 
 db = SQLAlchemy(metadata=metadata)
 
-
 class Restaurant(db.Model, SerializerMixin):
     __tablename__ = "restaurants"
 
@@ -20,9 +19,11 @@ class Restaurant(db.Model, SerializerMixin):
     name = db.Column(db.String)
     address = db.Column(db.String)
 
-    # add relationship
+    #  relationship of M:M: Restaurant to Pizza through RestaurantPizza
+    pizzas = db.relationship('Pizza', secondary='restaurant_pizzas', backref='restaurante', lazy=True)
 
-    # add serialization rules
+    # Serialization rules to prevent recursion
+    serialize_rules = ('-pizzas.restaurants',)
 
     def __repr__(self):
         return f"<Restaurant {self.name}>"
@@ -35,9 +36,11 @@ class Pizza(db.Model, SerializerMixin):
     name = db.Column(db.String)
     ingredients = db.Column(db.String)
 
-    # add relationship
+    #  relationship of M:M: Pizza to Restaurant through RestaurantPizza
+    restaurants = db.relationship('Restaurant', secondary='restaurant_pizzas', backref='pizza', lazy=True)
 
-    # add serialization rules
+    # Serialization rules to prevent recursion
+    serialize_rules = ('-restaurants.pizzas',)
 
     def __repr__(self):
         return f"<Pizza {self.name}, {self.ingredients}>"
@@ -49,11 +52,13 @@ class RestaurantPizza(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     price = db.Column(db.Integer, nullable=False)
 
-    # add relationships
+    #  foreign keys
+    pizza_id = db.Column(db.Integer, db.ForeignKey("pizzas.id", ondelete='CASCADE'))
+    restaurant_id = db.Column(db.Integer, db.ForeignKey("restaurants.id", ondelete='CASCADE'))
 
-    # add serialization rules
-
-    # add validation
+    #  relationships with cascading delete
+    pizza = db.relationship("Pizza", backref="restaurant_pizzas", cascade="all, delete")
+    restaurant = db.relationship("Restaurant", backref="restaurant_pizzas", cascade="all, delete")
 
     def __repr__(self):
-        return f"<RestaurantPizza ${self.price}>"
+        return
